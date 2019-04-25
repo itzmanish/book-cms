@@ -1,0 +1,2 @@
+GET http://localhost:8000/api/books HTTP/1.1
+Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJ1c2VybmFtZSI6ImtyaXNobmEiLCJleHAiOjE1NTU5MTA4NjMsImVtYWlsIjoiIn0.Wyey5i-l6q-6_EgRmtF1yeIpiHpUvZygrsHAqhB12TY
