@@ -9,11 +9,11 @@ from django.views.decorators.csrf import csrf_exempt
 from django.core.exceptions import ObjectDoesNotExist
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework.authentication import SessionAuthentication, BasicAuthentication, TokenAuthentication
+# from rest_framework.authentication import SessionAuthentication, BasicAuthentication, TokenAuthentication
+from .authentication import ExpiringTokenAuthentication
 
-from rest_framework.authtoken.models import Token
 from rest_framework.permissions import IsAuthenticated
-from .models import Book
+from .models import Book, ExpiringToken
 from .serializer import BookSerializer, LoginSerializer
 
 
@@ -22,7 +22,7 @@ class BookApiView(APIView):
     BookApiView Class based view returns list of books.
     '''
 
-    authentication_classes = (TokenAuthentication, BasicAuthentication)
+    authentication_classes = (ExpiringTokenAuthentication,)
     permission_classes = (IsAuthenticated,)
 
     def get(self, request) -> 'Response':
@@ -44,7 +44,7 @@ class BookDetailView(APIView):
     It return detail view of a specific book.
     '''
 
-    authentication_classes = (TokenAuthentication, BasicAuthentication)
+    authentication_classes = (ExpiringTokenAuthentication,)
     permission_classes = (IsAuthenticated,)
 
     def get_object(self, isbn) -> 'Queryset':
@@ -87,14 +87,19 @@ class LoginView(APIView):
         serializer.is_valid(raise_exception=True)
         user = serializer.validated_data['user']
         django_login(request, user)
-        token, created = Token.objects.get_or_create(user=user)
-        print(created)
+        token, created = ExpiringToken.objects.get_or_create(user=user)
+        if token.expired():
+            # If the token is expired, generate a new one.
+            token.delete()
+            token = ExpiringToken.objects.create(
+                user=user
+            )
         return Response({'key': token.key}, status=200)
 
 
 class LogoutView(APIView):
 
-    authentication_classes = [TokenAuthentication, ]
+    authentication_classes = [ExpiringTokenAuthentication, ]
 
     def post(self, request):
         try:

@@ -1,5 +1,8 @@
+from django.utils import timezone
+from django.conf import settings
 from django.db import models
 from django.contrib.auth.models import User
+from rest_framework.authtoken.models import Token
 
 
 class Book(models.Model):
@@ -19,10 +22,16 @@ class Book(models.Model):
         return self.book
 
 
-class JwtBlacklist(models.Model):
-    jti = models.CharField(max_length=100)
-    payload = models.CharField(max_length=150)
-    created_at = models.DateTimeField(auto_now_add=True)
+class ExpiringToken(Token):
 
-    def __repr__(self):
-        return self.jti
+    """Extend Token to add an expired method."""
+
+    class Meta(object):
+        proxy = True
+
+    def expired(self):
+        """Return boolean indicating token expiration."""
+        now = timezone.now()
+        if self.created < now - settings.TOKEN_EXPIRE_TIME:
+            return True
+        return False
