@@ -5,6 +5,8 @@ from django.contrib.auth import (
 from django.conf import settings
 from django.shortcuts import get_object_or_404
 from django.http import HttpResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.core.exceptions import ObjectDoesNotExist
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.authentication import SessionAuthentication, BasicAuthentication, TokenAuthentication
@@ -79,13 +81,14 @@ class BookDetailView(APIView):
 
 class LoginView(APIView):
 
+    @csrf_exempt
     def post(self, request):
         serializer = LoginSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.validated_data['user']
         django_login(request, user)
         token, created = Token.objects.get_or_create(user=user)
-        print(token)
+        print(created)
         return Response({'key': token.key}, status=200)
 
 
@@ -94,5 +97,9 @@ class LogoutView(APIView):
     authentication_classes = [TokenAuthentication, ]
 
     def post(self, request):
+        try:
+            request.user.auth_token.delete()
+        except (AttributeError, ObjectDoesNotExist):
+            pass
         django_logout(request)
         return Response('Successfully logged out.', status=204)
